@@ -7,7 +7,7 @@ from flask_monitoringdashboard.core.timezone import to_local_datetime
 from flask_monitoringdashboard.core.utils import get_endpoint_details
 from flask_monitoringdashboard.database import session_scope
 from flask_monitoringdashboard.database.count import count_profiled_requests
-from flask_monitoringdashboard.database.stack_line import get_profiled_requests
+from flask_monitoringdashboard.database.stack_line import get_profiled_requests, get_profiled_requests_filtered
 
 
 def get_body(index, stack_lines):
@@ -32,13 +32,15 @@ def get_body(index, stack_lines):
 def profiler(endpoint_id):
     page, per_page, offset = get_page_args(page_parameter='page', per_page_parameter='per_page')
     with session_scope() as db_session:
+        get_profiled_requests_filtered(db_session, endpoint_id)
         details = get_endpoint_details(db_session, endpoint_id)
         requests = get_profiled_requests(db_session, endpoint_id, offset, per_page)
-
         total = count_profiled_requests(db_session, endpoint_id)
     pagination = Pagination(page=page, per_page=per_page, total=total, format_number=True,
                             css_framework='bootstrap4', format_total=True, record_name='profiled requests')
 
+    # for r in requests:
+    #     print(r.stack_lines)
     body = {}  # dict with the request.id as a key, and the values is a list for every stack_line.
     for request in requests:
         request.time_requested = to_local_datetime(request.time_requested)
